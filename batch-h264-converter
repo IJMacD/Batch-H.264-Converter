@@ -124,6 +124,10 @@ foreach($dirListing as $dPath){
 		
 		$workingFile = $config['dir']['scratch'].$hash.'.mp4';
 		$destFile = $src['dirname'] . '/' . $src['filename'] . '.mp4';
+
+		$sourceFile = mapPath($sourceFile);
+		$workingFile = mapPath($workingFile);
+		$destFile = mapPath($destFile);
 		
 		logLine('Source: '.$sourceFile);
 		logLine('Scratch: '.$workingFile);
@@ -145,27 +149,27 @@ foreach($dirListing as $dPath){
 		
 		$ffCmd .= ' -preset '.$config['speed'].' -c:a aac -q:a '.$config['audioQuality'].' -c:s mov_text -movflags +faststart -strict -2 "'.$workingFile.'"';
 		logLine('Running command: '.$ffCmd);
-		if(!$config['test']){exec($ffCmd);};
+		if(!$config['test']){rexec($ffCmd);};
 		
 		
 		if($config['keepInJunkyard']){
 			logLine('Moving the original source to the junkyard...');
-			$junkFile = $config['dir']['junkyard'] . $src['basename'];
+			$junkFile = mapPath($config['dir']['junkyard'] . $src['basename']);
 			$junkCmd = 'mv "'.$sourceFile. '" "'.$junkFile.'"';
 			logLine($junkCmd);
-			if(!$config['test']){exec($junkCmd);};
+			if(!$config['test']){rexec($junkCmd);};
 		}else{
 			logLine('Deleting original...');
 			$junkFile = $config['dir']['junkyard'] . $src['basename'];
 			$rmCmd = 'rm "'.$sourceFile. '"';
 			logLine($rmCmd);
-			if(!$config['test']){exec($rmCmd);};
+			if(!$config['test']){rexec($rmCmd);};
 		};
 		
 		logLine('Moving converted file into place of original...');
 		$moveCmd = 'mv "'.$workingFile. '" "'.$destFile.'"';
 		logLine($moveCmd);
-		if(!$config['test']){exec($moveCmd);};
+		if(!$config['test']){rexec($moveCmd);};
 		
 		$timeTaken = time() - $timeStart;
 		
@@ -210,4 +214,29 @@ function recursivescandir ($dir) {
 		}
 	}
 	return $out;
+}
+
+function mapPath ($path) {
+	global $config;
+
+	if (isset($config['remotePathMap'])) {
+		foreach ($config['remotePathMap'] as $find => $replace) {
+			$l = strlen($find);
+			if (substr($path, 0, $l) === $find) {
+				return $replace . substr($path, $l);
+			}
+		}
+	}
+
+	return $path;
+}
+
+function rexec ($cmd) {
+	global $config;
+
+	if (isset($config['remoteCommandPrefix'])) {
+		exec($config['remoteCommandPrefix'] . escapeshellarg($cmd));
+	} else {
+		exec($cmd);
+	}
 }
