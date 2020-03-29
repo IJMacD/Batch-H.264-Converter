@@ -70,6 +70,10 @@ $dirListing = array_values(array_filter($dirListing, function ($file) use ($file
 }));
 logLine('Scan complete. '.count($dirListing).' file(s) found Starting conversion run...');
 
+if (isset($config['remoteCommandPrefix'])) {
+	logLine('Running remotely');
+}
+
 foreach($dirListing as $dPath){
 	$doConvert = false;
 	logLine('=== '.$dPath.' ===');
@@ -149,7 +153,7 @@ foreach($dirListing as $dPath){
 		
 		$ffCmd .= ' -preset '.$config['speed'].' -c:a aac -q:a '.$config['audioQuality'].' -c:s mov_text -movflags +faststart -strict -2 "'.$workingFile.'"';
 		logLine('Running command: '.$ffCmd);
-		if(!$config['test']){rexec($ffCmd);};
+		rexec($ffCmd);
 		
 		
 		if($config['keepInJunkyard']){
@@ -157,19 +161,19 @@ foreach($dirListing as $dPath){
 			$junkFile = mapPath($config['dir']['junkyard'] . $src['basename']);
 			$junkCmd = 'mv "'.$sourceFile. '" "'.$junkFile.'"';
 			logLine($junkCmd);
-			if(!$config['test']){rexec($junkCmd);};
+			rexec($junkCmd);
 		}else{
 			logLine('Deleting original...');
 			$junkFile = $config['dir']['junkyard'] . $src['basename'];
 			$rmCmd = 'rm "'.$sourceFile. '"';
 			logLine($rmCmd);
-			if(!$config['test']){rexec($rmCmd);};
+			rexec($rmCmd);
 		};
 		
 		logLine('Moving converted file into place of original...');
 		$moveCmd = 'mv "'.$workingFile. '" "'.$destFile.'"';
 		logLine($moveCmd);
-		if(!$config['test']){rexec($moveCmd);};
+		rexec($moveCmd);
 		
 		$timeTaken = time() - $timeStart;
 		
@@ -234,7 +238,10 @@ function mapPath ($path) {
 function rexec ($cmd) {
 	global $config;
 
+	if ($config['test']) return;
+
 	if (isset($config['remoteCommandPrefix'])) {
+		echo "REMOTE: ";
 		exec($config['remoteCommandPrefix'] . escapeshellarg($cmd));
 	} else {
 		exec($cmd);
